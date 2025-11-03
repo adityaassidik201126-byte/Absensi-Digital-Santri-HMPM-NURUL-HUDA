@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Digital HMPM NURUL HUDA - Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --toggle-button-size: 50px; 
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            background-color: #f4f7f9;
+            overflow-x: hidden; 
+        }
+
+        /* --- TOMBOL TOGGLE (POSISI FIXED DI LUAR SIDEBAR) --- */
+        #toggle-sidebar-btn {
+            position: fixed; 
+            top: 10px;
+            left: 10px;
+            z-index: 1001; 
+            
+            width: var(--toggle-button-size);
+            height: var(--toggle-button-size);
+            background-color: #ffffff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #333;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s, background-color 0.3s, color 0.3s;
+        }
+        #toggle-sidebar-btn:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        /* --- Sidebar / Tombol Menu Kiri --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: #ffffff;
+            color: #333;
+            height: 100vh;
+            padding: 20px 0;
+            padding-top: calc(var(--toggle-button-size) + 20px); 
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+            z-index: 1000;
+            left: 0;
+            transition: left 0.3s;
+        }
+        
+        /* State tersembunyi */
+        #sidebar.collapsed {
+            left: calc(0px - var(--sidebar-width)); 
+        }
+
+        /* Header dan Tombol Navigasi di sidebar */
+        .sidebar-header {
+            margin-bottom: 10px; /* Diperkecil */
+            text-align: center;
+            transition: opacity 0.3s;
+        }
+        .sidebar-role {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-btn {
+            width: 90%;
+            padding: 15px 10px;
+            margin: 5px 0;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #333;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        .sidebar-btn:hover { background-color: #e0e0e0; }
+        .sidebar-btn.active { background-color: #007bff; color: white; font-weight: bold; }
+        .sidebar-btn i { margin-right: 10px; }
+        
+        /* Tambahan untuk pemisah menu */
+        .menu-separator {
+            width: 90%;
+            border-top: 1px solid #e0e0e0;
+            margin: 15px 0 5px 0;
+            padding-top: 5px;
+            font-size: 0.9em;
+            color: #777;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        /* --- Main Content Area --- */
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            transition: margin-left 0.3s, width 0.3s;
+        }
+        
+        /* State tersembunyi */
+        #main-content.sidebar-collapsed {
+            margin-left: 0;
+            width: 100%;
+        }
+        
+        /* --- General Component Styles (Penting) --- */
+        .view { display: none; }
+        .view.active { display: block; }
+        
+        /* --- CSS for Dashboard --- */
+        #dashboard-view {
+             max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        #dashboard-view h1 { color: #007bff; }
+        #dashboard-view h2 { color: #333; font-size: 1.2em; margin-top: -10px; }
+        #dashboard-view #dashboard-time { font-size: 3em; font-weight: bold; color: #4caf50; margin-top: 10px; }
+        #dashboard-view #dashboard-date { font-size: 1.1em; color: #666; }
+        #dashboard-view #dashboard-logo { width: 100px; height: auto; margin-bottom: 10px; }
+        
+        #stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            gap: 20px;
+        }
+        .stat-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            flex-grow: 1;
+            min-width: 150px;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card .label {
+            font-size: 0.9em;
+            color: #777;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        .stat-card.total .value { color: #007bff; }
+        .stat-card.hadir .value { color: #4caf50; }
+        .stat-card.belum .value { color: #dc3545; }
+
+        /* Absensi Card Styling */
+        #scanner-history, #manual-history { max-width: 400px; margin: 20px auto; }
+        .card-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .card-row-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 1em; }
+        .card-row-bottom { display: flex; justify-content: space-between; font-size: 0.8em; color: #666; margin-top: 5px; }
+        
+        .status-hadir { background-color: #e6ffed; border-left: 5px solid #4caf50; }
+        .status-hadir .card-status-text { color: #4caf50; }
+        .status-terlambat { background-color: #fff8e6; border-left: 5px solid #ff9800; }
+        .status-terlambat .card-status-text { color: #ff9800; }
+        .status-gagal { background-color: #ffe6e6; border-left: 5px solid #f44336; }
+        .status-gagal .card-status-text { color: #f44336; }
+        .status-bebas { background-color: #e6f7ff; border-left: 5px solid #2196f3; }
+        .status-bebas .card-status-text { color: #2196f3; }
+
+        /* Scanner/QR Style */
+        #reader { max-width: 400px; margin: 20px auto; border: 2px solid #007bff; border-radius: 10px; overflow: hidden; }
+        #result-display-wrapper { margin-top: 20px; }
+        
+        /* Manual Form Style */
+        .manual-form-container { max-width: 400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); }
+        .manual-form-container select, .manual-form-container button { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 10px; border-radius: 5px; }
+        .manual-form-container label { display: block; font-weight: bold; margin-top: 10px; }
+
+        /* Rekap/Laporan Style */
+        .empty-history { padding: 20px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; text-align: center; color: #856404; }
+        #rekap-control { max-width: 900px; margin: 0 auto 20px; text-align: right; display: flex; justify-content: flex-end; gap: 10px; }
+        #rekap-control button { padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em; margin-left: 10px; }
+
+        /* Data Santri View */
+        #data-view { max-width: 900px; margin: 0 auto; }
+        .class-card {
+            background-color: #ffffff;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #007bff;
+        }
+        .class-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background-color: #e9f5ff;
+            border-radius: 8px 8px 0 0;
+            transition: background-color 0.2s;
+        }
+        .class-header:hover { background-color: #d8edff; }
+        .class-header h3 { margin: 0; color: #007bff; font-size: 1.3em; }
+        .class-header .class-info { display: flex; gap: 20px; font-size: 0.9em; color: #333; }
+        .class-header .info-item i { margin-right: 5px; color: #007bff; }
+        .class-header .toggle-icon { font-size: 1.2em; transition: transform 0.3s; }
+        .class-header.active .toggle-icon { transform: rotate(180deg); }
+        .santri-details {
+            padding: 10px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+        .santri-details.active { display: block; }
+        .santri-list { 
+            padding: 10px 0;
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 10px; 
+        }
+        .santri-item {
+            padding: 8px 12px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 0.95em;
+            display: flex;
+            flex-direction: column;
+        }
+        .santri-item strong { color: #333; }
+        .santri-item span { font-size: 0.8em; color: #666; }
+
+        /* Pengaturan View (Admin) */
+        #setting-view { max-width: 900px; margin: 0 auto; }
+        .setting-card {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid #673ab7;
+        }
+        .setting-card h3 { color: #673ab7; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0; }
+        .setting-card input, 
+        .setting-card select, 
+        .setting-card button { 
+            margin-bottom: 10px; 
+        }
+        .setting-card label {
+            display: block;
+            margin-top: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .setting-card input[type="text"],
+        .setting-card input[type="time"],
+        .setting-card select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .setting-card .action-btn {
+            width: auto;
+            min-width: 150px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .setting-card .action-btn:hover { background-color: #0056b3; }
+        
+        /* Style untuk tombol Toggle On/Off */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Style untuk Tabel Santri (Data Master) */
+        .santri-master-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .santri-master-table th, .santri-master-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        .santri-master-table th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        .santri-master-table .btn-small {
+            padding: 5px 10px;
+            margin-right: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+        }
+        .santri-master-table .btn-edit { background-color: #ffc107; color: #333; }
+        .santri-master-table .btn-delete { background-color: #dc3545; color: white; }
+
+        /* Style untuk Daftar Belum Hadir di Dashboard */
+        #belum-hadir-dashboard-container {
+            max-width: 800px;
+            margin: 40px auto 20px; /* Jarak bawah dikurangi untuk tombol WA */
+            text-align: left;
+            padding: 20px;
+            background-color: #fff8f9;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.1);
+        }
+        #belum-hadir-dashboard-container h3 { color: #dc3545; }
+        .belum-hadir-item {
+            padding: 5px 10px;
+            border-bottom: 1px dashed #f5c6cb;
+            font-size: 1em;
+            color: #333;
+        }
+        .belum-hadir-item:last-child {
+            border-bottom: none;
+        }
+        /* Style untuk tombol WhatsApp di Dashboard */
+        #whatsapp-belum-hadir-btn {
+            display: block;
+            width: 100%;
+            max-width: 800px;
+            margin: 0px auto 40px; /* Jarak atas/bawah yang lebih rapi */
+            padding: 12px;
+            background-color: #25D366;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #whatsapp-belum-hadir-btn:hover {
+            background-color: #1EBD5A;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="toggle-sidebar-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <img id="logo-sidebar" src="uploaded:Logo_HMPM-removebg-preview (1).png" alt="Logo HMPM NH" style="width: 80px; height: auto; border-radius: 50%;">
+            <p style="font-weight: bold; margin-top: 5px; margin-bottom: 5px;">HMPM NURUL HUDA</p>
+            <p class="sidebar-role">👨‍🎓 Role: Santri/Siswa (Akses Penuh)</p>
+        </div>
+
+        <button class="sidebar-btn active" id="btn-dashboard" onclick="switchView('dashboard')">
+            <i class="fas fa-home"></i> Beranda
+        </button>
+        <button class="sidebar-btn" id="btn-scanner" onclick="switchView('scanner')">
+            <i class="fas fa-qrcode"></i> Absensi QR
+        </button>
+        <button class="sidebar-btn" id="btn-manual" onclick="switchView('manual')">
+            <i class="fas fa-edit"></i> Absensi Manual
+        </button>
+        
+        <div class="menu-separator">Laporan & Data</div>
+        <button class="sidebar-btn" id="btn-rekap" onclick="switchView('rekap')">
+            <i class="fas fa-clipboard-list"></i> Data Absensi
+        </button>
+        <button class="sidebar-btn" id="btn-graph" onclick="switchView('graph')">
+            <i class="fas fa-chart-pie"></i> Statistik Kehadiran
+        </button>
+        <button class="sidebar-btn" id="btn-data" onclick="switchView('data')">
+            <i class="fas fa-database"></i> Data Santri
+        </button>
+        
+        <div class="menu-separator">Menu Admin</div>
+        <button class="sidebar-btn" id="btn-setting" onclick="switchView('setting')">
+            <i class="fas fa-cog"></i> Pengaturan Aplikasi
+        </button>
+        
+    </div>
+
+    <div id="main-content">
+
+        <div id="dashboard-view" class="view active">
+             <img id="dashboard-logo" src="uploaded:Logo_HMPM-removebg-preview (1).png" alt="Logo HMPM NH">
+            <h1>Absensi Digital HMPM NURUL HUDA</h1>
+            <h2>Selamat Datang di Sistem Kehadiran Digital HMPM NURUL HUDA</h2>
+            <p id="dashboard-date"></p>
+            <div id="dashboard-time"></div>
+            
+            <div id="stats-container">
+                <div class="stat-card total">
+                    <div class="label"><i class="fas fa-users"></i> TOTAL SANTRI</div>
+                    <div class="value" id="stat-total">0</div>
+                </div>
+                <div class="stat-card hadir">
+                    <div class="label"><i class="fas fa-check-circle"></i> SUDAH HADIR</div>
+                    <div class="value" id="stat-hadir">0</div>
+                </div>
+                <div class="stat-card belum">
+                    <div class="label"><i class="fas fa-times-circle"></i> BELUM HADIR</div>
+                    <div class="value" id="stat-belum">0</div>
+                </div>
+            </div>
+            
+            <div id="belum-hadir-dashboard-container">
+                <h3><i class="fas fa-exclamation-triangle"></i> Santri Belum Hadir Hari Ini:</h3>
+                <div id="belum-hadir-list-content">
+                    </div>
+            </div>
+            
+            <button id="whatsapp-belum-hadir-btn" onclick="sendBelumHadirReport()">
+                <i class="fab fa-whatsapp"></i> Kirim Daftar Belum Hadir via WhatsApp
+            </button>
+            
+            <div id="schedule-control-dashboard" style="max-width: 400px; margin: 0 auto; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);">
+                <h3>Kontrol Jadwal Absensi</h3>
+                <button id="btn-activate" class="btn btn-active" onclick="setScheduleMode(true)" style="background-color: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">✅ Aktifkan Jadwal</button>
+                <button id="btn-deactivate" class="btn btn-inactive" onclick="setScheduleMode(false)" style="background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">❌ Nonaktifkan Jadwal</button>
+                <p>Mode Saat Ini: <strong id="mode-display">AKTIF (Sesuai Jadwal)</strong></p>
+            </div>
+        </div>
+
+        <div id="scanner-view" class="view">
+             <h1 style="color: #1a5c34;">Absensi Santri (QR) 📸</h1>
+            <p>Arahkan kamera ke **QR Code URL** yang sesuai dengan kode santri.</p>
+            <div id="reader"></div>
+            
+            <div id="result-display-wrapper" style="width: 100%; max-width: 400px; margin: 20px auto;">
+                <div id="result-display" style="margin: 0; padding: 10px; font-size: 1.1em; font-weight: bold; border-radius: 5px; text-align: center; background-color: white; color: #333; border: 1px solid #ccc;">Status: Siap Memindai...</div>
+            </div>
+            
+            <div id="scanner-history" style=" max-width: 400px; margin: 20px auto;">
+                <h3>Riwayat Absensi Terakhir Hari Ini:</h3>
+                <div id="scanner-cards-list">
+                    </div>
+            </div>
+        </div>
+        
+        <div id="manual-view" class="view">
+            <h1 style="color: #6c757d;">Absensi Manual ✍️</h1>
+            <p>Gunakan mode ini untuk mencatat kehadiran santri tanpa memindai QR Code.</p>
+            <div class="manual-form-container">
+                <p style="text-align: center; font-weight: bold; font-size: 1.2em; color: #007bff;" id="manual-current-time"></p>
+
+                <label for="class-manual-select">1. Pilih Kelas</label>
+                <select id="class-manual-select">
+                    </select>
+
+                <label for="santri-manual-select">2. Pilih Nama Santri</label>
+                <select id="santri-manual-select">
+                    <option value="" disabled selected>Pilih kelas terlebih dahulu...</option>
+                </select>
+
+                <label for="status-manual-select">3. Pilih Status Absensi</label>
+                <select id="status-manual-select">
+                    <option value="Hadir">Hadir</option>
+                    <option value="Terlambat">Terlambat</option>
+                    <option value="Bebas Jadwal">Bebas/Izin</option>
+                </select>
+
+                <button onclick="recordManualAttendance()" style="width: 100%; padding: 12px; margin-top: 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 1.1em; cursor: pointer;">
+                    <i class="fas fa-save"></i> Catat Absensi Sekarang
+                </button>
+                
+                <p id="manual-result" style="margin-top: 15px; text-align: center; font-weight: bold;"></p>
+            </div>
+            
+            <div id="manual-history" style="max-width: 400px; margin: 20px auto;">
+                <h3>Riwayat Pencatatan Manual Terakhir:</h3>
+                <div id="manual-cards-list">
+                    </div>
+            </div>
+        </div>
+
+        <div id="rekap-view" class="view">
+            <h1 style="color: #1c72a8;">Laporan Data Absensi Santri Hari Ini</h1>
+            
+            <div id="rekap-control" style="max-width: 900px; margin: 0 auto 20px; text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-reset" onclick="resetAttendance()" style="background-color: #ffc107; color: #333; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em;">
+                    <i class="fas fa-undo"></i> Reset Semua Data
+                </button>
+                <button class="btn-whatsapp" onclick="generateWhatsappReport()" style="background-color: #25D366; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em;">
+                    <i class="fab fa-whatsapp"></i> Kirim Laporan via WhatsApp
+                </button>
+            </div>
+            
+            <p>Daftar lengkap seluruh absensi yang telah dicatat hari ini.</p>
+            <div id="attendance-cards-list" style="max-width: 900px; margin: 20px auto;">
+                </div>
+        </div>
+
+        <div id="data-view" class="view">
+            <h1 style="color: #007bff;">Data Santri HMPM NURUL HUDA</h1>
+            <p>Klik kartu kelas untuk melihat daftar santri, kode identifikasi, dan QR.</p>
+            <div id="santri-list-container">
+                </div>
+        </div>
+        
+        <div id="graph-view" class="view">
+            <h1 style="color: #673ab7;"><i class="fas fa-chart-pie"></i> Visualisasi Data Kehadiran</h1>
+            <p>Diagram batang dan pie chart menunjukkan persentase kehadiran berdasarkan status.</p>
+            
+            <div style="max-width: 900px; margin: 30px auto; padding: 20px; background-color: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h3 style="color: #673ab7; border-bottom: 2px solid #ccc; padding-bottom: 10px;">Diagram Batang (Total Santri)</h3>
+                <canvas id="barChart" style="max-height: 400px;"></canvas>
+            </div>
+
+            <div style="max-width: 900px; margin: 30px auto; padding: 20px; background-color: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h3 style="color: #673ab7; border-bottom: 2px solid #ccc; padding-bottom: 10px;">Pie Chart (Persentase Status)</h3>
+                <canvas id="pieChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+        
+        <div id="setting-view" class="view">
+            <h1 style="color: #673ab7;"><i class="fas fa-cog"></i> Pengaturan Aplikasi (Admin)</h1>
+            <p>Pusat kontrol untuk mengelola master data, jadwal, dan fitur tambahan sistem absensi.</p>
+            
+            <div class="setting-card">
+                <h3><i class="fas fa-clock"></i> 1. Pengaturan Jadwal Absen Harian</h3>
+                <label for="setting-start-time">Jam Mulai Absen (Contoh: 17:00):</label>
+                <input type="time" id="setting-start-time" value="17:00">
+                
+                <label for="setting-late-time">Batas Waktu Terlambat (Contoh: 17:40):</label>
+                <input type="time" id="setting-late-time" value="17:40">
+                
+                <label for="setting-end-time">Batas Akhir Absen (Contoh: 18:00):</label>
+                <input type="time" id="setting-end-time" value="18:00">
+                
+                <button class="action-btn" onclick="saveJadwal()">
+                    <i class="fas fa-save"></i> Simpan Jadwal Absen
+                </button>
+                <div id="jadwal-result" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
+
+            <div class="setting-card">
+                <h3><i class="fas fa-user-plus"></i> 2. Kelola Akun Pengguna</h3>
+                <label for="new-user-name">Nama Pengguna:</label>
+                <input type="text" id="new-user-name" placeholder="Masukkan nama">
+                
+                <label for="new-user-role">Peran (Role):</label>
+                <select id="new-user-role">
+                    <option value="Santri">Santri / Siswa</option>
+                    <option value="Guru">Guru / Ustadz</option>
+                    <option value="Admin">Admin / Operator</option>
+                </select>
+                
+                <button class="action-btn" onclick="addNewUser()">
+                    <i class="fas fa-user-plus"></i> Tambah Akun (Simulasi)
+                </button>
+                <div id="user-add-result" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
+            
+            <div class="setting-card">
+                <h3><i class="fas fa-users-cog"></i> 3. Kelola Master Data Santri</h3>
+                
+                <p style="font-size: 0.9em; color: #777;">*Peringatan: Perubahan di sini dapat mempengaruhi data absensi. ID harus unik.</p>
+                
+                <form id="add-santri-form">
+                    <input type="hidden" id="santri-edit-id">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="santri-id-input">ID Santri (Contoh: S-050)</label>
+                            <input type="text" id="santri-id-input" placeholder="Wajib unik" required>
+                        </div>
+                        <div>
+                            <label for="santri-name-input">Nama Lengkap Santri</label>
+                            <input type="text" id="santri-name-input" placeholder="Nama Santri" required>
+                        </div>
+                        <div>
+                            <label for="santri-class-select">Kelas/Kelompok</label>
+                            <select id="santri-class-select" required>
+                                <option value="" disabled selected>Pilih Kelas</option>
+                                </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="action-btn" id="santri-save-btn" style="background-color: #28a745; margin-top: 15px;">
+                        <i class="fas fa-plus"></i> Tambah Santri Baru
+                    </button>
+                    <button type="button" class="action-btn" id="santri-cancel-btn" style="background-color: #6c757d; display: none;" onclick="cancelEditSantri()">
+                        <i class="fas fa-times"></i> Batalkan Edit
+                    </button>
+                </form>
+
+                <div id="santri-management-list" style="margin-top: 20px;">
+                    <h4>Daftar Santri Terdaftar (Simulasi)</h4>
+                    <table class="santri-master-table" id="santri-list-table">
+                        </table>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <h3><i class="fas fa-cogs"></i> 4. Aktivasi Fitur Tambahan (Opsional)</h3>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                    <span><i class="fas fa-location-arrow" style="color: #007bff;"></i> **GPS Tracking** (Memastikan lokasi saat absen)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-gps" onchange="toggleFeature('GPS')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid #eee;">
+                    <span><i class="fab fa-whatsapp" style="color: #25D366;"></i> **Notifikasi Otomatis** (WhatsApp/Email)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-notif" onchange="toggleFeature('NOTIF')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid #eee;">
+                    <span><i class="fas fa-camera" style="color: #ff9800;"></i> **Verifikasi Wajah** (Face ID)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-faceid" onchange="toggleFeature('FACEID')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <p id="feature-status" style="margin-top: 15px; font-weight: bold; color: #6c757d;"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script> 
+
+    <script>
+        // --- KONFIGURASI & DATA INTI ---
+        const ATTENDANCE_STORAGE_KEY = 'spckAttendanceHistory';
+        const RECORDED_IDS_KEY = 'spckRecordedIds';
+        const WHATSAPP_NUMBER = '6283188831220'; 
+        const WALI_KELAS_SIMULASI = 'Rian Fathurrohman'; // Asumsi wali kelas yang sedang login (Data ini tidak terpakai lagi setelah menu dihapus, namun tetap dipertahankan di map)
+        const SETTINGS_KEY = 'spckAttendanceSettings';
+        const FEATURES_KEY = 'spckOptionalFeatures';
+        
+        // =================================================================
+        // ** PETA URL KHUSUS ** (Data Santri & QR ID)
+        // =================================================================
+        const SPECIAL_URL_MAP = {
+            "https://q.me-qr.com/2MtAlvSA": "S-001", "https://qrto.org/4SnsHY": "S-002", "https://qrto.org/YsqtoG": "S-003", "https://qrto.org/2IBux4": "S-004",
+            "https://qrto.org/Q70Pfa": "S-005", "https://qrto.org/Qgt79S": "S-006", "https://q.me-qr.com/KJE1LUes": "S-007", "https://q.me-qr.com/14EcEh5q": "S-008",
+            "https://q.me-qr.com/1ms6Fs3p": "S-009", "https://q.me-qr.com/K3H7Li6p": "S-010", "https://q.me-qr.com/mqnNqDXt": "S-011", "https://q.me-qr.com/qGVjMmmh": "S-012",
+            "https://q.me-qr.com/bik0mGIl": "S-013", "https://q.me-qr.com/uJqHpj9r": "S-014", "https://q.me-qr.com/zNLP4EOg": "S-015", "https://q.me-qr.com/L8WudKRg": "S-016",
+            "https://q.me-qr.com/YwS1JxdA": "S-017", "https://qrto.org/4SnsHY": "S-018", "https://qrto.org/YsqtoG": "S-019", "https://qrto.org/2IBux4": "S-020",
+            "https://q.me-qr.com/0PbMUy46": "S-021", "https://q.me-qr.com/hISh2Nja": "S-022", "https://q.me-qr.com/jxyN8SMB": "S-023", "https://q.me-qr.com/QiU5v2ZL": "S-024",
+            "https://q.me-qr.com/RIae8vsu": "S-025", "https://q.me-qr.com/ZOJNn1KI": "S-026", "https://q.me-qr.com/zTZ1YYy3": "S-027", "https://q.me-qr.com/UuvlRPmq": "S-028",
+            "https://q.me-qr.com/VSWE4KGj": "S-029", "https://q.me-qr.com/grJMYzZh": "S-030", "https://q.me-qr.com/KXQ885xN": "S-031", "https://q.me-qr.com/wSmGtnN4": "S-032",
+            "https://q.me-qr.com/5NZiyQuB": "S-033", "https://q.me-qr.com/LKSLs1wE": "S-034", "https://q.me-qr.com/Ogi2gl3h": "S-035", "https://q.me-qr.com/P9fyHWlN": "S-036",
+            "https://q.me-qr.com/Egn06EEY": "S-037", "https://q.me-qr.com/SsnnNqFh": "S-038", "https://q.me-qr.com/ieFOtorn": "S-039", "https://q.me-qr.com/ujji8fq7": "S-040",
+            "https://q.me-qr.com/JLNDM0aP": "S-041", 
+            "https://q.me-qr.com/fOikHU7h": "S-042", "https://q.me-qr.com/GWgrnRbt": "S-043", "https://q.me-qr.com/KdDmmiXM": "S-045",
+            "https://q.me-qr.com/sWVunZW6": "S-049" 
+        };
+        // =================================================================
+
+        const waliKelasMap = {
+            "PP1": "Nasirotun nisa",
+            "PP2": "Nisa sara sholihah",
+            "Ibtida' 1": "Rian Fathurrohman",
+            "Ibtida' 2": "Rian Fathurrohman",
+            "Ibtida' 3": "Rian Fathurrohman"
+        };
+        
+        // Master Data Santri
+        let santriDataByClass = {
+            "PP1": [{ id: "S-001", name: "Ainur" }, { id: "S-002", name: "Al" }, { id: "S-003", name: "Arfan" }, { id: "S-004", name: "Babang" }, { id: "S-005", name: "Baim" }, { id: "S-006", name: "Baqis" }, { id: "S-007", name: "Bilqis" }, { id: "S-008", name: "Ceril" }, { id: "S-009", name: "Dinda" }, { id: "S-010", name: "Dita" }, { id: "S-011", name: "Gendis" }, { id: "S-012", name: "Kiara" }, { id: "S-013", name: "Oca" }, { id: "S-014", name: "Poppy" }, { id: "S-015", name: "Rafa" }, { id: "S-016", name: "Satria" } ],
+            "PP2": [{ id: "S-017", name: "Aira" }, { id: "S-018", name: "Ajmal" }, { id: "S-019", name: "Anna" }, { id: "S-020", name: "Arsyad" }, { id: "S-021", name: "Asnan" }, { id: "S-022", name: "Dzikri" }, { id: "S-023", name: "Faeja" }, { id: "S-024", name: "Fathan" }, { id: "S-025", name: "Fadil" }, { id: "S-026", name: "Maresta" }, { id: "S-027", name: "Piki" }, { id: "S-028", name: "Raisya" }, { id: "S-029", name: "Syakilla" }, { id: "S-030", name: "Zafira" }, { id: "S-031", name: "Zelda" } ],
+            "Ibtida' 1": [{ id: "S-032", name: "Alya" }, { id: "S-033", name: "Eksel" }, { id: "S-034", name: "Hanifa" }, { id: "S-035", name: "Kesar" }, { id: "S-036", name: "Michelle" }, { id: "S-037", name: "Yunita" }, { id: "S-038", name: "Zam - Zam" }, { id: "S-039", name: "Zhuan" } ],
+            "Ibtida' 2": [{ id: "S-040", name: "Ajeng" }, { id: "S-041", name: "Arya" }, { id: "S-042", name: "Fabian" }, { id: "S-043", name: "Regin" } ],
+            "Ibtida' 3": [{ id: "S-044", name: "Akbar" }, { id: "S-045", name: "Anis" }, { id: "S-046", name: "Denis" }, { id: "S-047", name: "Fahmi" }, { id: "S-048", name: "Iki" }, { id: "S-049", name: "Shifa" } ]
+        };
+        // Data Izin (Sudah dihapus dari tampilan/fungsi, tetapi data struktur tetap ada di JS untuk menghindari error jika ada fungsi lain yang merujuk)
+        let izinRequests = []; 
+        
+        let attendanceMap = {}; 
+        let urlToIdMap = {};      
+        let idToUrlMap = {}; 
+
+        // Fungsi yang membangun map data dari santriDataByClass
+        function buildDataMaps() {
+            attendanceMap = {}; 
+            urlToIdMap = {};      
+            idToUrlMap = {}; 
+            let tempTotalSantri = 0;
+            
+            for (const [classKey, santriArray] of Object.entries(santriDataByClass)) {
+                const className = classKey; 
+                santriArray.forEach(santri => {
+                    const santriID = santri.id;
+                    attendanceMap[santriID] = { name: santri.name, class: className, wali: waliKelasMap[className] };
+                    let urlKey = Object.keys(SPECIAL_URL_MAP).find(url => SPECIAL_URL_MAP[url] === santriID) || `https://qr.hmpm.nh/${santriID.replace('-', '')}`;
+                    urlToIdMap[urlKey] = santriID;
+                    idToUrlMap[santriID] = urlKey; 
+                    tempTotalSantri++;
+                });
+            }
+            return tempTotalSantri;
+        }
+
+        let TOTAL_SANTRI = buildDataMaps();
+        
+        // Pengaturan Waktu (Disimpan di localStorage)
+        let settings = {
+            startTime: '17:00',
+            lateTime: '17:40',
+            endTime: '18:00'
+        };
+        
+        // Pengaturan Fitur Opsional
+        let optionalFeatures = {
+            GPS: false,
+            NOTIF: false,
+            FACEID: false
+        };
+
+        // Memuat setting dari localStorage
+        function loadSettings() {
+            const savedSettings = localStorage.getItem(SETTINGS_KEY);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            }
+             const savedFeatures = localStorage.getItem(FEATURES_KEY);
+            if (savedFeatures) {
+                optionalFeatures = JSON.parse(savedFeatures);
+            }
+        }
+        
+        let recordedURLs = new Set(); 
+        let isScheduleActive = true; 
+        let html5QrcodeScanner = null; 
+        let resultDisplayTimeout = null; 
+        
+        let myBarChart;
+        let myPieChart;
+
+
+        // --- FUNGSI TOGGLE SIDEBAR ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const toggleBtn = document.getElementById('toggle-sidebar-btn');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.querySelector('i').classList.remove('fa-arrow-left');
+                toggleBtn.querySelector('i').classList.add('fa-bars');
+                toggleBtn.style.left = '10px';
+            } else {
+                toggleBtn.querySelector('i').classList.remove('fa-bars');
+                toggleBtn.querySelector('i').classList.add('fa-arrow-left'); 
+                toggleBtn.style.left = 'calc(var(--sidebar-width) + 10px)';
+            }
+        }
+
+        // --- FUNGSI PESAN STATUS ---
+        function updateResultDisplay(message, bgColor, color) {
+            const display = document.getElementById('result-display');
+            if (display) {
+                display.innerText = message;
+                display.style.backgroundColor = bgColor;
+                display.style.color = color;
+                display.style.border = (bgColor === 'white' ? '1px solid #ccc' : 'none');
+                display.style.boxShadow = 'none'; 
+            }
+        }
+        
+        function clearResultDisplay() {
+            const display = document.getElementById('result-display');
+            if (display) {
+                display.innerText = "Status: Siap Memindai...";
+                display.style.backgroundColor = 'white';
+                display.style.color = '#333';
+                display.style.border = '1px solid #ccc';
+            }
+        }
+
+        function updateManualResultDisplay(message, bgColor, color) {
+            const display = document.getElementById('manual-result');
+            if (display) {
+                display.innerText = message;
+                display.style.backgroundColor = bgColor;
+                display.style.color = color;
+                display.style.padding = '10px';
+                display.style.borderRadius = '4px';
+                display.style.marginBottom = '15px';
+            }
+            setTimeout(() => {
+                if (display) {
+                    display.innerText = '';
+                    display.style.backgroundColor = 'transparent';
+                    display.style.padding = '0';
+                    display.style.marginBottom = '0';
+                }
+            }, 4000);
+        }
+
+        // --- MANAJEMEN TAMPILAN (VIEW) ---
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.querySelectorAll('.sidebar-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const viewElementId = viewId + '-view';
+            const viewElement = document.getElementById(viewElementId);
+            
+            // Tambahkan pengecekan apakah view element ada 
+            if (viewElement) {
+                viewElement.classList.add('active');
+            }
+            
+            const btnElement = document.getElementById('btn-' + viewId);
+            if (btnElement) {
+                btnElement.classList.add('active');
+            }
+
+            if (resultDisplayTimeout) {
+                clearTimeout(resultDisplayTimeout);
+                clearResultDisplay();
+            }
+
+            // Tombol Navigasi
+            if (viewId === 'scanner' && html5QrcodeScanner) {
+                startScanner(); 
+                clearResultDisplay(); 
+                loadScannerHistory(); 
+            } else if (html5QrcodeScanner) {
+                stopScanner();
+            }
+            
+            if (viewId === 'dashboard') {
+                updateDashboardStats();
+                renderBelumHadirList(); 
+            } else if (viewId === 'data') {
+                renderSantriData(); 
+            } else if (viewId === 'rekap') { 
+                loadAttendance(); 
+            } else if (viewId === 'manual') {
+                updateDashboardClock(); 
+                populateClassDropdown(); 
+                loadManualHistory(); 
+            } else if (viewId === 'graph') { 
+                renderAttendanceGraphs(); 
+            } else if (viewId === 'setting') { 
+                loadSettingsToForm();
+                renderSantriManagementTable(); 
+                populateSantriClassDropdown(); 
+                loadOptionalFeatures(); 
+            }
+        }
+
+        // --- FUNGSI JAM & DASHBOARD ---
+        function updateDashboardClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '.');
+            const dateString = now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+            
+            const timeDisplay = document.getElementById('dashboard-time');
+            if(timeDisplay) timeDisplay.innerText = timeString;
+            
+            const dateDisplay = document.getElementById('dashboard-date');
+            if(dateDisplay) dateDisplay.innerText = `Rekapitulasi Hari Ini: ${dateString}`;
+            
+            const manualTime = document.getElementById('manual-current-time');
+            if (manualTime && document.getElementById('manual-view').classList.contains('active')) {
+                manualTime.innerText = `Waktu Pencatatan: ${timeString}`;
+            }
+        }
+        
+        function updateDashboardStats() {
+            TOTAL_SANTRI = buildDataMaps(); // Pastikan total santri terbaru
+            const totalHadir = recordedURLs.size;
+            const totalBelum = TOTAL_SANTRI - totalHadir;
+
+            const statTotal = document.getElementById('stat-total');
+            if(statTotal) statTotal.innerText = TOTAL_SANTRI;
+            
+            const statHadir = document.getElementById('stat-hadir');
+            if(statHadir) statHadir.innerText = totalHadir;
+            
+            const statBelum = document.getElementById('stat-belum');
+            if(statBelum) statBelum.innerText = totalBelum;
+            
+            renderBelumHadirList(); 
+            
+            return {
+                total: TOTAL_SANTRI,
+                hadir: totalHadir,
+                belum: totalBelum
+            };
+        }
+        
+        // --- FUNGSI: MENAMPILKAN DAFTAR BELUM HADIR DI DASHBOARD ---
+        function renderBelumHadirList() {
+            const listContent = document.getElementById('belum-hadir-list-content');
+            const whatsappBtn = document.getElementById('whatsapp-belum-hadir-btn');
+            if (!listContent || !whatsappBtn) return;
+            
+            listContent.innerHTML = '';
+            let isAllPresent = true;
+            let belumHadirList = [];
+            
+            for (const santriID in attendanceMap) {
+                const santriURL = idToUrlMap[santriID];
+                if (!recordedURLs.has(santriURL)) {
+                    const santri = attendanceMap[santriID];
+                    belumHadirList.push({ name: santri.name, class: santri.class });
+                    isAllPresent = false;
+                }
+            }
+
+            if (isAllPresent) {
+                listContent.innerHTML = '<p class="belum-hadir-empty" style="color: #28a745; font-size: 1.2em; font-style: normal;"><i class="fas fa-thumbs-up"></i> Semua santri sudah tercatat hadir! 🎉</p>';
+                whatsappBtn.style.display = 'none'; // Sembunyikan tombol jika semua sudah hadir
+            } else {
+                belumHadirList.sort((a, b) => {
+                    if (a.class < b.class) return -1;
+                    if (a.class > b.class) return 1;
+                    if (a.name < b.name) return -1;
+                    return 1;
+                });
+                
+                belumHadirList.forEach(santri => {
+                    const item = document.createElement('div');
+                    item.classList.add('belum-hadir-item');
+                    item.innerText = `${santri.name} (${santri.class})`;
+                    listContent.appendChild(item);
+                });
+                whatsappBtn.style.display = 'block'; // Tampilkan tombol
+            }
+            
+            // Simpan daftar belum hadir ke global variable atau tempat yang bisa diakses oleh fungsi WA
+             window.currentBelumHadirList = belumHadirList;
+        }
+        
+        // --- FUNGSI BARU: KIRIM DAFTAR BELUM HADIR VIA WA ---
+        function sendBelumHadirReport() {
+            const belumHadirList = window.currentBelumHadirList || [];
+            const stats = updateDashboardStats(); 
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dateString = now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+
+            if (belumHadirList.length === 0) {
+                alert("Semua santri sudah hadir hari ini. Tidak ada laporan yang perlu dikirim.");
+                return;
+            }
+
+            let reportText = `*⚠️ PEMBERITAHUAN ABSENSI BELUM HADIR ⚠️*\n`;
+            reportText += `_Waktu Cek: ${timeString} | ${dateString}_\n\n`;
+            
+            reportText += `*Ringkasan Statistik:*\n`;
+            reportText += `Total Santri: ${stats.total}\n`;
+            reportText += `Sudah Hadir: ${stats.hadir}\n`;
+            reportText += `*BELUM HADIR (Alpa): ${stats.belum} Santri*\n\n`;
+            
+            reportText += `*Daftar Santri Belum Hadir:*\n`;
+            
+            let currentClass = '';
+            belumHadirList.forEach((santri, index) => {
+                if (santri.class !== currentClass) {
+                    reportText += `\n*-- Kelas ${santri.class} --*\n`;
+                    currentClass = santri.class;
+                }
+                reportText += `${index + 1}. ${santri.name}\n`;
+            });
+            
+            reportText += `\n_Mohon segera konfirmasi status kehadiran santri yang bersangkutan. Terima kasih._`;
+
+            const encodedText = encodeURIComponent(reportText);
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedText}`;
+            
+            window.open(whatsappUrl, '_blank');
+        }
+
+
+        // --- FUNGSI SCANNER CONTROL ---
+        let isScannerRunning = false;
+
+        function startScanner() {
+            if (!isScannerRunning && html5QrcodeScanner) {
+                 html5QrcodeScanner.render(onScanSuccess, onScanError);
+                 isScannerRunning = true;
+            }
+        }
+
+        function stopScanner() {
+            if (isScannerRunning && html5QrcodeScanner) {
+                html5QrcodeScanner.stop().catch(err => {});
+                isScannerRunning = false;
+            }
+        }
+
+        // --- FUNGSI PENYIMPANAN DATA LOKAL (localStorage) ---
+        function saveAttendance(history, recordedIds) {
+            try {
+                localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(history));
+                localStorage.setItem(RECORDED_IDS_KEY, JSON.stringify(Array.from(recordedIds)));
+            } catch (e) {
+                console.error("Gagal menyimpan data ke localStorage:", e);
+            }
+        }
+
+        function loadAttendance() {
+            const attendanceCards = document.getElementById('attendance-cards-list');
+            if (!attendanceCards) return []; 
+
+            attendanceCards.innerHTML = ''; 
+
+            const historyJson = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
+            let history = historyJson ? JSON.parse(historyJson) : [];
+
+            if (recordedURLs.size === 0 && localStorage.getItem(RECORDED_IDS_KEY)) {
+                 recordedURLs = new Set(JSON.parse(localStorage.getItem(RECORDED_IDS_KEY)));
+            }
+
+            // Panggil fungsi untuk render rekapitulasi per kelas
+            renderClassRecap(); 
+
+            if (history.length === 0) {
+                attendanceCards.innerHTML += '<div class="empty-history"><i class="fas fa-calendar-times"></i> Belum ada data absensi hari ini.</div>';
+            } else {
+                // Tampilkan header untuk detail
+                const headerDetail = document.createElement('h3');
+                headerDetail.style.marginTop = '30px';
+                headerDetail.style.borderBottom = '2px solid #007bff';
+                headerDetail.style.paddingBottom = '5px';
+                headerDetail.innerText = 'Riwayat Absensi Lengkap Hari Ini';
+                attendanceCards.appendChild(headerDetail);
+                
+                // Urutkan riwayat dari yang terbaru
+                history.sort((a, b) => new Date(`1970/01/01 ${b.time}`) - new Date(`1970/01/01 ${a.time}`));
+
+                history.forEach(item => {
+                    appendCardToHistory(item.name, item.className, item.time, item.status, item.statusCssClass, item.source, 'attendance-cards-list', false); 
+                });
+            }
+            
+            return history; 
+        }
+        
+        // --- FUNGSI: REKAPITULASI PER KELAS ---
+        function renderClassRecap() {
+            const attendanceCards = document.getElementById('attendance-cards-list');
+            if (!attendanceCards) return;
+            
+            const existingRecap = document.getElementById('class-recap-container');
+            if (existingRecap) existingRecap.remove();
+
+            const recapContainer = document.createElement('div');
+            recapContainer.id = 'class-recap-container';
+            recapContainer.style.marginBottom = '30px';
+            
+            let recapHTML = `
+                <h2 style="color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-bottom: 20px; font-size: 1.5em;">📊 Ringkasan Kehadiran Santri Per Kelas</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            `;
+
+            for (const [classKey, santriArray] of Object.entries(santriDataByClass)) {
+                const className = classKey;
+                const totalSantri = santriArray.length;
+                let hadirCount = 0;
+                let belumHadirNames = [];
+
+                santriArray.forEach(santri => {
+                    const santriID = santri.id;
+                    const santriURL = idToUrlMap[santriID];
+                    
+                    if (recordedURLs.has(santriURL)) {
+                        hadirCount++;
+                    } else {
+                        belumHadirNames.push(santri.name);
+                    }
+                });
+
+                const belumHadirCount = totalSantri - hadirCount;
+                const hadirStyle = hadirCount > 0 ? '#28a745' : '#6c757d';
+                const belumStyle = belumHadirCount > 0 ? '#dc3545' : '#6c757d';
+                
+                recapHTML += `
+                    <div class="stat-card" style="padding: 15px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); border-left: 5px solid ${belumHadirCount > 0 ? '#dc3545' : '#28a745'};">
+                        <h4 style="margin-top: 0; color: #007bff;">${className} (${totalSantri} Santri)</h4>
+                        <div style="display: flex; justify-content: space-around; font-size: 1.1em; margin-bottom: 15px;">
+                            <span style="color: ${hadirStyle};"><i class="fas fa-check-circle"></i> Hadir: <strong>${hadirCount}</strong></span>
+                            <span style="color: ${belumStyle};"><i class="fas fa-times-circle"></i> Belum: <strong>${belumHadirCount}</strong></span>
+                        </div>
+                        
+                        <h5 style="margin: 5px 0; font-size: 1em; color: ${belumStyle};">Daftar Belum Hadir:</h5>
+                        <p style="font-size: 0.9em; margin: 0; padding: 5px; background-color: #f4f7f9; border-radius: 4px;">
+                            ${belumHadirNames.length > 0 ? belumHadirNames.join(', ') : 'Semua sudah hadir! 🎉'}
+                        </p>
+                    </div>
+                `;
+            }
+
+            recapHTML += `</div>`;
+            recapContainer.innerHTML = recapHTML;
+            
+            const rekapControl = document.getElementById('rekap-control');
+            if (rekapControl) {
+                 rekapControl.insertAdjacentElement('afterend', recapContainer);
+            } else {
+                 attendanceCards.prepend(recapContainer);
+            }
+        }
+        
+        function loadScannerHistory() {
+            const scannerCards = document.getElementById('scanner-cards-list');
+            if (!scannerCards) return;
+            
+            scannerCards.innerHTML = ''; 
+
+            const historyJson = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
+            let history = historyJson ? JSON.parse(historyJson) : [];
+            
+            const qrHistory = history.filter(item => item.source === 'QR');
+
+            if (qrHistory.length === 0) {
+                scannerCards.innerHTML = '<div style="font-size: 0.9em; color: #999; text-align: center;">Belum ada absensi QR yang terekam.</div>';
+            } else {
+                const latestHistory = qrHistory.slice(0, 5);
+                latestHistory.forEach(item => {
+                     appendCardToHistory(item.name, item.className, item.time, item.status, item.statusCssClass, item.source, 'scanner-cards-list', false); 
+                });
+            }
+        }
+        
+        function loadManualHistory() {
+            const manualCards = document.getElementById('manual-cards-list');
+            if (!manualCards) return;
+            
+            manualCards.innerHTML = ''; 
+
+            const historyJson = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
+            let history = historyJson ? JSON.parse(historyJson) : [];
+            
+            const manualHistory = history.filter(item => item.source === 'Manual');
+            
+            if (manualHistory.length === 0) {
+                manualCards.innerHTML = '<div style="font-size: 0.9em; color: #999; text-align: center;">Belum ada absensi manual yang dicatat hari ini.</div>';
+            } else {
+                const latestManualHistory = manualHistory.slice(0, 5);
+                latestManualHistory.forEach(item => {
+                     appendCardToHistory(item.name, item.className, item.time, item.status, item.statusCssClass, item.source, 'manual-cards-list', false); 
+                });
+            }
+        }
+
+        function resetAttendance() {
+            if (confirm("Anda yakin ingin menghapus SEMUA data absensi HARI INI? Aksi ini tidak dapat dibatalkan.")) {
+                localStorage.removeItem(ATTENDANCE_STORAGE_KEY);
+                localStorage.removeItem(RECORDED_IDS_KEY);
+                
+                recordedURLs = new Set();
+                izinRequests = []; 
+                
+                // Hapus Chart lama jika ada
+                if (myBarChart) myBarChart.destroy();
+                if (myPieChart) myPieChart.destroy();
+                
+                if (document.getElementById('rekap-view').classList.contains('active')) {
+                    loadAttendance(); 
+                }
+                if (document.getElementById('scanner-view').classList.contains('active')) {
+                    loadScannerHistory(); 
+                }
+                if (document.getElementById('manual-view').classList.contains('active')) {
+                    loadManualHistory(); 
+                }
+                if (document.getElementById('dashboard-view').classList.contains('active')) {
+                    renderBelumHadirList(); 
+                }
+                // Halaman Izin tidak perlu di-refresh karena sudah dihapus
+
+                alert("Data absensi hari ini telah berhasil direset!");
+                updateDashboardStats();
+            }
+        }
+        
+        // --- FUNGSI WHATSAPP REPORT (Laporan Lengkap) ---
+        function generateWhatsappReport() {
+            const reportHistory = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || '[]');
+            const stats = updateDashboardStats(); 
+            const now = new Date();
+            const dateString = now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+            
+            let reportText = `*LAPORAN DATA ABSENSI SANTRI HMPM NURUL HUDA*\n`;
+            reportText += `Tanggal: ${dateString}\n\n`;
+            
+            reportText += `*1. RINGKASAN REKAPITULASI:*\n`;
+            reportText += `Santri Terdaftar: ${stats.total}\n`;
+            reportText += `Santri Sudah Hadir: ${stats.hadir}\n`;
+            reportText += `Santri Belum Hadir (Alpa): ${stats.belum}\n\n`;
+            
+            if (reportHistory.length === 0) {
+                reportText += `*2. DETAIL ABSENSI:*\nBelum ada absensi yang dicatat hari ini.`;
+            } else {
+                reportText += `*2. DETAIL ABSENSI (${reportHistory.length} catatan):*\n`;
+                
+                // Urutkan riwayat dari yang terbaru
+                reportHistory.sort((a, b) => new Date(`1970/01/01 ${b.time}`) - new Date(`1970/01/01 ${a.time}`));
+                
+                reportHistory.forEach((item, index) => {
+                    const number = index + 1;
+                    const sourceTag = item.source === 'Manual' ? ' (Manual)' : ''; 
+                    reportText += `${number}. ${item.name} (${item.className}) - ${item.status}${sourceTag} (${item.time})\n`;
+                });
+            }
+
+            const encodedText = encodeURIComponent(reportText);
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedText}`;
+            
+            window.open(whatsappUrl, '_blank');
+        }
+        
+        // --- FUNGSI MANUAL FORM ---
+        function populateClassDropdown() {
+            const classSelect = document.getElementById('class-manual-select');
+            const classKeys = Object.keys(santriDataByClass);
+            
+            classSelect.innerHTML = '<option value="" disabled selected>Pilih kelas...</option>';
+
+            classKeys.forEach(classKey => {
+                const option = document.createElement('option');
+                option.value = classKey;
+                option.textContent = classKey;
+                classSelect.appendChild(option);
+            });
+
+            classSelect.onchange = populateNameDropdown;
+            
+            document.getElementById('santri-manual-select').innerHTML = '<option value="" disabled selected>Pilih kelas terlebih dahulu...</option>';
+        }
+
+        function populateNameDropdown() {
+            const classSelect = document.getElementById('class-manual-select');
+            const santriSelect = document.getElementById('santri-manual-select');
+            const selectedClassKey = classSelect.value;
+
+            santriSelect.innerHTML = '';
+            
+            if (!selectedClassKey) {
+                santriSelect.innerHTML = '<option value="" disabled selected>Pilih kelas terlebih dahulu...</option>';
+                return;
+            }
+
+            const santriList = santriDataByClass[selectedClassKey] || [];
+
+            if (santriList.length === 0) {
+                santriSelect.innerHTML = '<option value="" disabled selected>Tidak ada santri di kelas ini.</option>';
+                return;
+            }
+
+            santriSelect.innerHTML = '<option value="" disabled selected>Pilih nama santri...</option>';
+            
+            santriList.forEach(santri => {
+                const option = document.createElement('option');
+                option.value = santri.id; 
+                option.textContent = `${santri.name} (${santri.id})`;
+                santriSelect.appendChild(option);
+            });
+        }
+        
+        function recordManualAttendance() {
+            const selectedId = document.getElementById('santri-manual-select').value;
+            const inputStatus = document.getElementById('status-manual-select').value;
+            const now = new Date();
+            const currentTime = now.toLocaleTimeString('id-ID');
+            
+            if (!selectedId) {
+                updateManualResultDisplay(`❌ GAGAL: Mohon pilih nama santri.`, '#f8d7da', '#721c24');
+                return;
+            }
+
+            const studentData = attendanceMap[selectedId];
+            const studentUrl = idToUrlMap[selectedId]; 
+            
+            if (recordedURLs.has(studentUrl)) {
+                updateManualResultDisplay(`⚠️ PERINGATAN: ${studentData.name} (${studentData.class}) sudah tercatat absensi hari ini.`, '#fff3cd', 'orange');
+                return;
+            }
+
+            let statusClass;
+            let finalStatusText = inputStatus; 
+
+            if (inputStatus === 'Hadir') {
+                statusClass = 'status-hadir';
+                finalStatusText = 'Hadir Tepat Waktu'; 
+            } else if (inputStatus === 'Terlambat') {
+                statusClass = 'status-terlambat';
+            } else if (inputStatus === 'Bebas Jadwal') {
+                statusClass = 'status-bebas';
+                finalStatusText = 'Bebas/Izin'; 
+            }
+
+            recordedURLs.add(studentUrl); 
+            
+            const newRecord = { 
+                name: studentData.name, 
+                className: studentData.class, 
+                time: currentTime, 
+                status: finalStatusText, 
+                statusCssClass: statusClass,
+                source: 'Manual' 
+            };
+            
+            const isScannerActive = document.getElementById('scanner-view').classList.contains('active');
+            const isRekapActive = document.getElementById('rekap-view').classList.contains('active');
+            const isDashboardActive = document.getElementById('dashboard-view').classList.contains('active'); 
+            const isGraphActive = document.getElementById('graph-view').classList.contains('active');
+
+            appendCardToHistory(newRecord.name, newRecord.className, newRecord.time, newRecord.status, newRecord.statusCssClass, newRecord.source, 'manual-cards-list', true);
+
+            if (isRekapActive) { loadAttendance(); }
+            if (isScannerActive) { loadScannerHistory(); }
+            if (isDashboardActive) { renderBelumHadirList(); } 
+            if (isGraphActive) { renderAttendanceGraphs(); } 
+
+
+            updateManualResultDisplay(
+                `✅ SUKSES: Absensi ${studentData.name} (${finalStatusText}) dicatat secara MANUAL.`, 
+                '#d4edda', 
+                '#155724'
+            );
+            
+            document.getElementById('santri-manual-select').selectedIndex = 0;
+            document.getElementById('status-manual-select').selectedIndex = 0;
+
+            updateDashboardStats();
+        }
+
+        // --- FUNGSI DATA SANTRI VIEW (Dipertahankan) ---
+        function renderSantriData() {
+            const container = document.getElementById('santri-list-container');
+            container.innerHTML = ''; 
+            
+            const classKeys = Object.keys(santriDataByClass);
+
+            classKeys.forEach(classKey => {
+                const santriArray = santriDataByClass[classKey];
+                const waliKelas = waliKelasMap[classKey] || 'N/A';
+                const totalSantri = santriArray.length;
+                const classId = classKey.replace(/[^a-zA-Z0-9]/g, '-'); 
+
+                let santriListHTML = `<div class="santri-list">`;
+                santriArray.forEach(santri => {
+                    const qrIdentifier = idToUrlMap[santri.id]; 
+                    const displayPath = qrIdentifier.replace(/https?:\/\//, '').substring(0, 30) + (qrIdentifier.length > 30 ? '...' : '');
+                    
+                    santriListHTML += `
+                        <div class="santri-item">
+                            <strong>${santri.name} (${santri.id})</strong> 
+                            <span title="${qrIdentifier}">Kode QR: ${displayPath}</span>
+                        </div>
+                    `;
+                });
+                santriListHTML += `</div>`;
+
+
+                const classCard = document.createElement('div');
+                classCard.classList.add('class-card');
+                classCard.innerHTML = `
+                    <div class="class-header" onclick="toggleClassDetails('${classId}')">
+                        <h3><i class="fas fa-school"></i> ${classKey}</h3>
+                        <div class="class-info">
+                            <div class="info-item">
+                                <i class="fas fa-user-tie"></i> Wali Kelas: <strong>${waliKelas}</strong>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-users"></i> Total Santri: <strong>${totalSantri}</strong>
+                            </div>
+                            <i class="fas fa-chevron-down toggle-icon" id="icon-${classId}"></i>
+                        </div>
+                    </div>
+                    <div class="santri-details" id="details-${classId}">
+                        <h4 style="margin-bottom: 5px; color: #333;"><i class="fas fa-list"></i> Daftar Nama Santri:</h4>
+                        ${santriListHTML}
+                    </div>
+                `;
+                container.appendChild(classCard);
+            });
+        }
+
+        function toggleClassDetails(classId) {
+            const detailsElement = document.getElementById(`details-${classId}`);
+            const headerElement = document.querySelector(`#details-${classId}`).previousElementSibling;
+            
+            if (detailsElement.classList.contains('active')) {
+                detailsElement.classList.remove('active');
+                headerElement.classList.remove('active');
+            } else {
+                detailsElement.classList.add('active');
+                headerElement.classList.add('active');
+            }
+        }
+
+
+        // --- FUNGSI KONTROL JADWAL ---
+        function setScheduleMode(isActive) {
+            isScheduleActive = isActive;
+            const modeDisplay = document.getElementById('mode-display');
+            
+            if (isActive) {
+                modeDisplay.innerText = "AKTIF (Sesuai Jadwal)";
+                modeDisplay.style.color = '#28a745';
+            } else {
+                modeDisplay.innerText = "NONAKTIF (Bebas)";
+                modeDisplay.style.color = '#dc3545';
+            }
+        }
+
+        // --- FUNGSI LOGIKA ABSENSI QR ---
+        function getAttendanceStatus(currentDate) {
+            
+            const parseTime = (timeStr) => {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            };
+            
+            const START_TIME = parseTime(settings.startTime);
+            const LATE_THRESHOLD = parseTime(settings.lateTime);
+            const END_TIME = parseTime(settings.endTime);
+            
+            const currentMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
+            
+            if (!isScheduleActive) {
+                if (currentMinutes > END_TIME) {
+                     return { status: "Hadir Tepat Waktu", statusClass: "status-hadir" };
+                }
+                return { status: "Bebas Jadwal", statusClass: "status-bebas" };
+            }
+
+            if (currentMinutes < START_TIME) {
+                 return { status: "Di Luar Jadwal", statusClass: "status-gagal" }; 
+            } else if (currentMinutes >= START_TIME && currentMinutes <= LATE_THRESHOLD) {
+                return { status: "Hadir Tepat Waktu", statusClass: "status-hadir" };
+            } else if (currentMinutes > LATE_THRESHOLD && currentMinutes <= END_TIME) {
+                return { status: "Terlambat", statusClass: "status-terlambat" };
+            } else {
+                return { status: "Di Luar Jadwal", statusClass: "status-gagal" }; 
+            }
+        }
+
+        // --- FUNGSI SCAN SUKSES (Dipertahankan) ---
+        function onScanSuccess(decodedText, decodedResult) {
+            
+            if (resultDisplayTimeout) {
+                clearTimeout(resultDisplayTimeout);
+            }
+            
+            const scannedURL = decodedText.trim(); 
+            const santriID = urlToIdMap[scannedURL];
+            
+            if (!santriID) {
+                updateResultDisplay(`❌ GAGAL: URL tidak terdaftar!`, '#f8d7da', '#721c24');
+                resultDisplayTimeout = setTimeout(clearResultDisplay, 1000); 
+                return;
+            }
+
+            const studentData = attendanceMap[santriID];
+            let studentClass = studentData.class || "-"; 
+            let studentName = studentData.name;
+            const now = new Date();
+            const currentTime = now.toLocaleTimeString('id-ID');
+            let attendanceStatus, statusClass;
+
+            ({ status: attendanceStatus, statusClass: statusClass } = getAttendanceStatus(now)); 
+
+            let isAlreadyRecorded = recordedURLs.has(scannedURL);
+
+            updateResultDisplay(`Memproses ID... ${santriID}`, '#cce5ff', '#004085');
+
+            resultDisplayTimeout = setTimeout(() => {
+                
+                if (isAlreadyRecorded) {
+                    const alertMsg = `⚠️ ${studentName} (${studentClass}) Sudah tercatat.`; 
+                    updateResultDisplay(alertMsg, '#fff3cd', '#856404'); 
+                    resultDisplayTimeout = setTimeout(clearResultDisplay, 1000);
+
+                } else if (isScheduleActive && attendanceStatus === "Di Luar Jadwal") {
+                    const alertMsg = `❌ GAGAL: Absensi ${studentName} dilakukan ${attendanceStatus}.`; 
+                    updateResultDisplay(alertMsg, '#f8d7da', '#721c24'); 
+                    resultDisplayTimeout = setTimeout(clearResultDisplay, 1000);
+                    
+                } else {
+                    recordedURLs.add(scannedURL); 
+                    
+                    // Normalisasi status untuk Bebas Jadwal (jika mode nonaktif)
+                    const finalStatus = (attendanceStatus === "Bebas Jadwal" && !isScheduleActive) ? "Bebas/Izin" : attendanceStatus;
+                    
+                    const newRecord = { 
+                        name: studentName, 
+                        className: studentClass, 
+                        time: currentTime, 
+                        status: finalStatus, 
+                        statusCssClass: statusClass,
+                        source: 'QR' 
+                    };
+                    
+                    const isManualActive = document.getElementById('manual-view').classList.contains('active');
+                    const isRekapActive = document.getElementById('rekap-view').classList.contains('active');
+                    const isDashboardActive = document.getElementById('dashboard-view').classList.contains('active'); 
+                    const isGraphActive = document.getElementById('graph-view').classList.contains('active');
+
+                    appendCardToHistory(newRecord.name, newRecord.className, newRecord.time, newRecord.status, newRecord.statusCssClass, newRecord.source, 'scanner-cards-list', true);
+                    
+                    if (isManualActive) { loadManualHistory(); }
+                    if (isRekapActive) { loadAttendance(); }
+                    if (isDashboardActive) { renderBelumHadirList(); } 
+                    if (isGraphActive) { renderAttendanceGraphs(); } 
+                    
+                    const successBg = statusClass === "status-hadir" ? '#d4edda' : statusClass === "status-terlambat" ? '#fff3cd' : statusClass === "status-bebas" ? '#cce5ff' : statusClass === "status-gagal" ? '#f8d7da' : '#fff';
+                    const successColor = statusClass === "status-hadir" ? '#155724' : statusClass === "status-terlambat" ? '#856404' : statusClass === "status-bebas" ? '#004085' : statusClass === "status-gagal" ? '#721c24' : '#333';
+                    
+                    updateResultDisplay(
+                        `✅ ${studentName} (${studentClass}) - ${finalStatus}`, 
+                        successBg, 
+                        successColor
+                    );
+                    
+                    updateDashboardStats();
+                    
+                    resultDisplayTimeout = setTimeout(clearResultDisplay, 2000);
+                }
+                
+            }, 3000); 
+        }
+        
+        // --- FUNGSI RIWAYAT KOTAK (Rendering) ---
+        function appendCardToHistory(name, className, time, status, statusCssClass, source, listId, shouldSave = false) {
+            const listElement = document.getElementById(listId);
+            if (!listElement) return; 
+            
+            const newCard = document.createElement('div');
+            newCard.classList.add('card-item', statusCssClass);
+            
+            const sourceTagHtml = source === 'Manual' 
+                ? ' <span style="font-size: 0.8em; color: #dc3545; font-weight: normal;">(Manual)</span>' 
+                : '';
+            
+            newCard.innerHTML = `
+                <div class="card-row-top">
+                    <span>${name} (${className})${sourceTagHtml}</span> 
+                    <span class="card-status-text">${status}</span>
+                </div>
+                <div class="card-row-bottom">
+                    <span><i class="fas fa-clock"></i> ${time}</span>
+                    <span>Sumber: ${source}</span>
+                </div>
+            `;
+            
+            if (listId === 'scanner-cards-list' || listId === 'manual-cards-list') {
+                const emptyMessage = listElement.querySelector('div[style*="font-size: 0.9em"]');
+                if (emptyMessage) emptyMessage.remove();
+                
+                listElement.prepend(newCard);
+                 if (listElement.children.length > 5) {
+                    listElement.removeChild(listElement.lastChild);
+                }
+            } else {
+                const emptyMessage = listElement.querySelector('.empty-history');
+                if (emptyMessage) emptyMessage.remove();
+                listElement.prepend(newCard);
+            }
+            
+            if (shouldSave) {
+                let history = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || '[]');
+                const newRecord = { name, className, time, status, statusCssClass, source };
+                history.unshift(newRecord);
+                saveAttendance(history, recordedURLs);
+            }
+        }
+
+
+        function onScanError(errorMessage) {
+            // Abaikan kesalahan kecil
+        }
+        
+        
+        // --- FUNGSI: GRAFIK KEHADIRAN (CHART.JS) ---
+        function calculateAttendanceStats() {
+            const historyJson = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
+            const history = historyJson ? JSON.parse(historyJson) : [];
+            
+            const stats = {
+                'Hadir Tepat Waktu': 0,
+                'Terlambat': 0,
+                'Bebas/Izin': 0, 
+            };
+            
+            // Set untuk melacak santri yang sudah diabsen (berdasarkan nama dan kelas)
+            const recordedNames = new Set(); 
+            
+            history.forEach(item => {
+                const key = `${item.name}-${item.className}`;
+                if (!recordedNames.has(key)) {
+                    recordedNames.add(key);
+                    
+                    if (item.status === 'Hadir Tepat Waktu') {
+                        stats['Hadir Tepat Waktu']++;
+                    } else if (item.status === 'Terlambat') {
+                        stats['Terlambat']++;
+                    } else if (item.status.includes('Bebas') || item.status.includes('Izin')) {
+                         stats['Bebas/Izin']++;
+                    }
+                }
+            });
+
+            const totalHadirTercatat = stats['Hadir Tepat Waktu'] + stats['Terlambat'] + stats['Bebas/Izin'];
+            const totalBelumHadir = TOTAL_SANTRI - totalHadirTercatat;
+            
+            stats['Belum Hadir (Alpa)'] = totalBelumHadir;
+            
+            return stats;
+        }
+
+        function renderAttendanceGraphs() {
+            const stats = calculateAttendanceStats();
+            
+            // Hancurkan chart lama jika ada sebelum membuat yang baru
+            if (myBarChart) myBarChart.destroy();
+            if (myPieChart) myPieChart.destroy();
+            
+            const labels = Object.keys(stats);
+            const dataCounts = Object.values(stats);
+            
+            // Warna untuk setiap status
+            const colors = [
+                '#4caf50',   // Hadir Tepat Waktu (Hijau)
+                '#ff9800',   // Terlambat (Jingga)
+                '#2196f3',   // Bebas/Izin (Biru)
+                '#f44336'    // Belum Hadir (Merah)
+            ];
+
+            // --- DIAGRAM BATANG ---
+            const ctxBar = document.getElementById('barChart');
+            if (ctxBar) {
+                myBarChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Jumlah Santri',
+                            data: dataCounts,
+                            backgroundColor: colors,
+                            borderColor: colors.map(c => c.replace('0.', '0.5')), 
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Jumlah Santri' },
+                                ticks: { stepSize: 1 }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'Total Kehadiran Berdasarkan Status' }
+                        }
+                    }
+                });
+            }
+
+            // --- PIE CHART (Persentase) ---
+            const ctxPie = document.getElementById('pieChart');
+            if (ctxPie) {
+                myPieChart = new Chart(ctxPie, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Persentase Santri',
+                            data: dataCounts,
+                            backgroundColor: colors,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                         plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const value = context.parsed;
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            label += value + ` Santri (${percentage}%)`;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            },
+                            title: { display: true, text: 'Persentase Status Kehadiran dari Total Santri' }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // ====================================================================
+        // --- FUNGSI ADMIN (NO. 7) ---
+        // ====================================================================
+        
+        // 1. Pengaturan Jadwal
+        function loadSettingsToForm() {
+            document.getElementById('setting-start-time').value = settings.startTime;
+            document.getElementById('setting-late-time').value = settings.lateTime;
+            document.getElementById('setting-end-time').value = settings.endTime;
+        }
+
+        function saveJadwal() {
+            const startTime = document.getElementById('setting-start-time').value;
+            const lateTime = document.getElementById('setting-late-time').value;
+            const endTime = document.getElementById('setting-end-time').value;
+            const resultDiv = document.getElementById('jadwal-result');
+
+            if (!startTime || !lateTime || !endTime) {
+                resultDiv.style.color = '#dc3545';
+                resultDiv.innerText = 'Gagal: Semua kolom jadwal harus diisi!';
+                return;
+            }
+            
+            settings.startTime = startTime;
+            settings.lateTime = lateTime;
+            settings.endTime = endTime;
+            
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            
+            resultDiv.style.color = '#28a745';
+            resultDiv.innerText = `✅ Jadwal Absen berhasil diperbarui! Mulai: ${startTime}, Batas Terlambat: ${lateTime}, Akhir: ${endTime}`;
+            setTimeout(() => resultDiv.innerText = '', 4000);
+        }
+        
+        // 2. Kelola Akun Pengguna (Simulasi)
+        function addNewUser() {
+            const name = document.getElementById('new-user-name').value.trim();
+            const role = document.getElementById('new-user-role').value;
+            const resultDiv = document.getElementById('user-add-result');
+            
+            if (name.length === 0) {
+                resultDiv.style.color = '#dc3545';
+                resultDiv.innerText = 'Nama pengguna tidak boleh kosong.';
+                return;
+            }
+            
+            // Ini adalah SIMULASI penambahan akun.
+            resultDiv.style.color = '#28a745';
+            resultDiv.innerText = `✅ Akun baru "${name}" dengan Role: ${role} berhasil ditambahkan (Simulasi)!`;
+            
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-user-role').selectedIndex = 0;
+            
+            setTimeout(() => resultDiv.innerText = '', 4000);
+        }
+        
+        // 3. Kelola Master Data Santri (CRUD Simulasi)
+        function populateSantriClassDropdown() {
+            const select = document.getElementById('santri-class-select');
+            const classKeys = Object.keys(waliKelasMap); // Ambil dari daftar kelas yang ada
+
+            select.innerHTML = '<option value="" disabled selected>Pilih Kelas</option>';
+
+            classKeys.forEach(classKey => {
+                const option = document.createElement('option');
+                option.value = classKey;
+                option.textContent = classKey;
+                select.appendChild(option);
+            });
+        }
+        
+        function renderSantriManagementTable() {
+            const table = document.getElementById('santri-list-table');
+            
+            let tableHTML = `
+                <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Kelas</th>
+                    <th>Wali Kelas</th>
+                    <th>Aksi</th>
+                </tr>
+            `;
+
+            const allSantri = [];
+            for (const cls in santriDataByClass) {
+                santriDataByClass[cls].forEach(santri => {
+                    allSantri.push({
+                        ...santri,
+                        class: cls,
+                        wali: waliKelasMap[cls] || 'N/A'
+                    });
+                });
+            }
+            
+            allSantri.forEach(santri => {
+                tableHTML += `
+                    <tr>
+                        <td>${santri.id}</td>
+                        <td>${santri.name}</td>
+                        <td>${santri.class}</td>
+                        <td>${santri.wali}</td>
+                        <td>
+                            <button class="btn-small btn-edit" onclick="editSantri('${santri.id}', '${santri.class}')"><i class="fas fa-edit"></i> Edit</button>
+                            <button class="btn-small btn-delete" onclick="deleteSantri('${santri.id}', '${santri.class}')"><i class="fas fa-trash"></i> Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            table.innerHTML = tableHTML;
+        }
+        
+        // Event listener untuk form Add/Edit
+        document.getElementById('add-santri-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = document.getElementById('santri-id-input').value.trim();
+            const name = document.getElementById('santri-name-input').value.trim();
+            const selectedClass = document.getElementById('santri-class-select').value;
+            const editId = document.getElementById('santri-edit-id').value;
+
+            if (editId) {
+                // Proses Edit
+                updateSantri(editId, id, name, selectedClass);
+            } else {
+                // Proses Tambah Baru
+                addSantri(id, name, selectedClass);
+            }
+            
+            // Bersihkan form dan tampilkan tombol Tambah
+            document.getElementById('add-santri-form').reset();
+            document.getElementById('santri-edit-id').value = '';
+            document.getElementById('santri-id-input').disabled = false;
+            document.getElementById('santri-save-btn').innerHTML = '<i class="fas fa-plus"></i> Tambah Santri Baru';
+            document.getElementById('santri-save-btn').style.backgroundColor = '#28a745';
+            document.getElementById('santri-cancel-btn').style.display = 'none';
+        });
+
+        function addSantri(id, name, selectedClass) {
+            // Cek duplikasi ID
+            let isDuplicate = false;
+            for (const cls in santriDataByClass) {
+                if (santriDataByClass[cls].some(s => s.id === id)) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            
+            if (isDuplicate) {
+                 alert(`Gagal: ID Santri ${id} sudah ada!`);
+                 return;
+            }
+
+            const newSantri = { id, name };
+            santriDataByClass[selectedClass].push(newSantri);
+            
+            // Perbarui semua data map
+            TOTAL_SANTRI = buildDataMaps();
+            
+            renderSantriManagementTable();
+            alert(`✅ Santri ${name} (${id}) berhasil ditambahkan ke kelas ${selectedClass}!`);
+        }
+
+        function updateSantri(originalId, newId, newName, newClass) {
+            let originalClass = '';
+            let originalIndex = -1;
+            
+            // 1. Cari Santri lama
+            for (const cls in santriDataByClass) {
+                const index = santriDataByClass[cls].findIndex(s => s.id === originalId);
+                if (index !== -1) {
+                    originalClass = cls;
+                    originalIndex = index;
+                    break;
+                }
+            }
+            
+            if (originalIndex === -1) {
+                alert('Gagal: Data santri lama tidak ditemukan.');
+                return;
+            }
+
+            // 2. Cek duplikasi ID baru (jika ID berubah)
+            if (originalId !== newId) {
+                let isDuplicate = false;
+                for (const cls in santriDataByClass) {
+                    if (cls !== originalClass && santriDataByClass[cls].some(s => s.id === newId)) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+                if (isDuplicate) {
+                    alert(`Gagal: ID Santri baru ${newId} sudah digunakan!`);
+                    return;
+                }
+            }
+            
+            // 3. Pindahkan/Update data
+            const updatedSantri = { id: newId, name: newName };
+
+            if (originalClass !== newClass) {
+                // Pindah Kelas
+                santriDataByClass[originalClass].splice(originalIndex, 1);
+                santriDataByClass[newClass].push(updatedSantri);
+            } else {
+                // Update di kelas yang sama
+                santriDataByClass[newClass][originalIndex] = updatedSantri;
+            }
+            
+            // Perbarui semua data map
+            TOTAL_SANTRI = buildDataMaps();
+            
+            renderSantriManagementTable();
+            alert(`✅ Data Santri ${newName} (${newId}) berhasil diperbarui!`);
+        }
+
+        function deleteSantri(id, cls) {
+             if (!confirm(`Yakin ingin menghapus santri ${id} dari kelas ${cls}? Tindakan ini permanen!`)) {
+                return;
+            }
+            
+            const index = santriDataByClass[cls].findIndex(s => s.id === id);
+            if (index !== -1) {
+                santriDataByClass[cls].splice(index, 1);
+                
+                // Perbarui semua data map
+                TOTAL_SANTRI = buildDataMaps();
+                
+                // Hapus juga dari riwayat absensi (Simulasi)
+                for (const url in urlToIdMap) {
+                    if (urlToIdMap[url] === id) {
+                         recordedURLs.delete(url);
+                    }
+                }
+                
+                renderSantriManagementTable();
+                updateDashboardStats(); // Perbarui statistik setelah penghapusan
+                alert(`✅ Santri ${id} berhasil dihapus.`);
+            }
+        }
+        
+        function editSantri(id, cls) {
+            const santriToEdit = santriDataByClass[cls].find(s => s.id === id);
+            
+            if (santriToEdit) {
+                document.getElementById('santri-edit-id').value = id;
+                document.getElementById('santri-id-input').value = santriToEdit.id;
+                document.getElementById('santri-id-input').disabled = true; // Tidak bisa edit ID saat ini
+                document.getElementById('santri-name-input').value = santriToEdit.name;
+                document.getElementById('santri-class-select').value = cls;
+                
+                document.getElementById('santri-save-btn').innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+                document.getElementById('santri-save-btn').style.backgroundColor = '#ffc107';
+                document.getElementById('santri-cancel-btn').style.display = 'inline-block';
+            }
+        }
+
+        function cancelEditSantri() {
+             document.getElementById('add-santri-form').reset();
+            document.getElementById('santri-edit-id').value = '';
+            document.getElementById('santri-id-input').disabled = false;
+            document.getElementById('santri-save-btn').innerHTML = '<i class="fas fa-plus"></i> Tambah Santri Baru';
+            document.getElementById('santri-save-btn').style.backgroundColor = '#28a745';
+            document.getElementById('santri-cancel-btn').style.display = 'none';
+        }
+        
+        // 4. Aktivasi Fitur Tambahan
+        function loadOptionalFeatures() {
+            document.getElementById('toggle-gps').checked = optionalFeatures.GPS;
+            document.getElementById('toggle-notif').checked = optionalFeatures.NOTIF;
+            document.getElementById('toggle-faceid').checked = optionalFeatures.FACEID;
+            updateFeatureStatusDisplay();
+        }
+
+        function toggleFeature(featureKey) {
+            const checkbox = document.getElementById(`toggle-${featureKey.toLowerCase()}`);
+            optionalFeatures[featureKey] = checkbox.checked;
+            localStorage.setItem(FEATURES_KEY, JSON.stringify(optionalFeatures));
+            updateFeatureStatusDisplay();
+        }
+
+        function updateFeatureStatusDisplay() {
+            const statusDiv = document.getElementById('feature-status');
+            const statusText = [];
+            
+            if (optionalFeatures.GPS) statusText.push('GPS Tracking');
+            if (optionalFeatures.NOTIF) statusText.push('Notifikasi Otomatis');
+            if (optionalFeatures.FACEID) statusText.push('Verifikasi Wajah');
+            
+            if (statusText.length > 0) {
+                 statusDiv.style.color = '#28a745';
+                statusDiv.innerText = `Fitur Aktif: ${statusText.join(', ')}.`;
+            } else {
+                 statusDiv.style.color = '#dc3545';
+                statusDiv.innerText = 'Tidak ada fitur tambahan opsional yang aktif.';
+            }
+        }
+
+
+        // --- INIT APLIKASI ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings(); // Memuat pengaturan dan fitur opsional
+            if (localStorage.getItem(RECORDED_IDS_KEY)) {
+                 recordedURLs = new Set(JSON.parse(localStorage.getItem(RECORDED_IDS_KEY)));
+            }
+            updateDashboardStats();
+            updateDashboardClock();
+            setInterval(updateDashboardClock, 1000);
+            setScheduleMode(true); 
+            renderBelumHadirList(); 
+            
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", { fps: 10, qrbox: 250, rememberLastUsedCamera: true });
+
+            switchView('dashboard');
+            
+            
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggle-sidebar-btn');
+            if (!sidebar.classList.contains('collapsed')) {
+                 toggleBtn.style.left = 'calc(var(--sidebar-width) + 10px)';
+                 toggleBtn.querySelector('i').classList.add('fa-arrow-left'); 
+            }
+        });
+    </script>
+
+</body>
+</html>
